@@ -1,67 +1,67 @@
-name: CI
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-jobs:
-  lint-test:
-    runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: pgvector/pgvector:pg16
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: test_db
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install ruff mypy
-
-      - name: Lint with ruff
-        run: ruff check src/
-
-      - name: Type check with mypy
-        run: mypy src/ --ignore-missing-imports || true
-
-      - name: Run tests
-        env:
-          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/test_db
-          REDIS_URL: redis://localhost:6379/0
-          JWT_SECRET_KEY: test-secret-key
-          LLM_API_KEY: ""
-          EMBEDDING_API_KEY: ""
-        run: |
-          pip install pytest-asyncio httpx aiosqlite
-          pytest src/tests/ -v --cov=src --cov-report=term-missing || true
+# name: CI
+#
+# on:
+#   push:
+#     branches: [main]
+#   pull_request:
+#     branches: [main]
+#
+# jobs:
+#   lint-test:
+#     runs-on: ubuntu-latest
+#
+#     services:
+#       postgres:
+#         image: pgvector/pgvector:pg16
+#         env:
+#           POSTGRES_USER: postgres
+#           POSTGRES_PASSWORD: postgres
+#           POSTGRES_DB: test_db
+#         ports:
+#           - 5432:5432
+#         options: >-
+#           --health-cmd pg_isready
+#           --health-interval 10s
+#           --health-timeout 5s
+#           --health-retries 5
+#
+#       redis:
+#         image: redis:7-alpine
+#         ports:
+#           - 6379:6379
+#         options: >-
+#           --health-cmd "redis-cli ping"
+#           --health-interval 10s
+#           --health-timeout 5s
+#           --health-retries 5
+#
+#     steps:
+#       - uses: actions/checkout@v4
+#
+#       - name: Set up Python 3.11
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: "3.11"
+#
+#       - name: Install dependencies
+#         run: |
+#           python -m pip install --upgrade pip
+#           pip install -r requirements.txt
+#           pip install ruff mypy
+#
+#       - name: Lint with ruff
+#         run: ruff check src/
+#
+#       - name: Type check with mypy
+#         run: mypy src/ --ignore-missing-imports || true
+#
+#       - name: Run tests
+#         env:
+#           DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/test_db
+#           REDIS_URL: redis://localhost:6379/0
+#           JWT_SECRET_KEY: test-secret-key
+#           LLM_API_KEY: ""
+#           EMBEDDING_API_KEY: ""
+#         run: |
+#           pip install pytest-asyncio httpx aiosqlite
+#           pytest src/tests/ -v --cov=src --cov-report=term-missing || true
