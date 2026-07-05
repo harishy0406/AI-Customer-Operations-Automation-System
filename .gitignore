@@ -30,6 +30,11 @@ Thumbs.db
 postgres_data/
 redis_data/
 
+# Project planning documents (PRD, Design, Implementation)
+01_PRD.md
+02_DESIGN_DOC.md
+03_IMPLEMENTATION_PLAN.md
+
 # Logs
 *.log
 logs/
