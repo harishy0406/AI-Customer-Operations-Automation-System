@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Customer Operations - Demo</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface-2: #242836;
+    --border: #2e3347;
+    --text: #e4e6ef;
+    --text-muted: #8b8fa8;
+    --primary: #6366f1;
+    --primary-hover: #818cf8;
+    --success: #22c55e;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --info: #38bdf8;
+    --radius: 10px;
+    --shadow: 0 2px 8px rgba(0,0,0,.3);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    width: 240px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 24px 0;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+  .sidebar .logo {
+    padding: 0 20px 20px;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -.3px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .sidebar .logo svg { flex-shrink: 0; }
+  .sidebar nav { padding: 12px 0; flex: 1; }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 500;
+    transition: all .15s;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+  }
+  .nav-item:hover { color: var(--text); background: var(--surface-2); }
+  .nav-item.active { color: var(--primary); background: color-mix(in srgb, var(--primary) 10%, transparent); border-right: 2px solid var(--primary); }
+  .nav-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+  .sidebar .status-bar {
+    padding: 12px 20px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    display: inline-block;
+  }
+  .status-dot.online { background: var(--success); }
+  .status-dot.offline { background: var(--text-muted); }
+
+  /* Main */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .topbar {
+    padding: 16px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+  }
+  .topbar h1 { font-size: 16px; font-weight: 600; }
+  .topbar .actions { display: flex; gap: 8px; align-items: center; }
+  .topbar .badge {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: var(--surface-2);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 32px;
+  }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+  }
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .card-title { font-size: 14px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; }
+
+  /* Metric Grid */
+  .metric-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .metric-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+  .metric-card .label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+  .metric-card .value { font-size: 28px; font-weight: 700; }
+  .metric-card .sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  .metric-card .value.good { color: var(--success); }
+  .metric-card .value.warn { color: var(--warning); }
+  .metric-card .value.bad { color: var(--danger); }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+  .tab {
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    border: none;
+    background: none;
+    border-bottom: 2px solid transparent;
+    transition: all .15s;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+  /* Query Console */
+  .query-console {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 160px);
+  }
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .message {
+    max-width: 80%;
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .message.user {
+    align-self: flex-end;
+    background: var(--primary);
+    color: #fff;
+    border-bottom-right-radius: 4px;
+  }
+  .message.assistant {
+    align-self: flex-start;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 4px;
+  }
+  .message .meta {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 8px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  .message .meta .tag {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+  }
+  .tag.auto { background: color-mix(in srgb, var(--success) 20%, transparent); color: var(--success); }
+  .tag.flagged { background: color-mix(in srgb, var(--warning) 20%, transparent); color: var(--warning); }
+  .tag.withheld { background: color-mix(in srgb, var(--danger) 20%, transparent); color: var(--danger); }
+  .tag.cached { background: color-mix(in srgb, var(--info) 20%, transparent); color: var(--info); }
+  .tag.hall-low { color: var(--success); }
+  .tag.hall-mid { color: var(--warning); }
+  .tag.hall-high { color: var(--danger); }
+  .typing-indicator {
+    display: flex;
+    gap: 4px;
+    padding: 12px 16px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+  }
+  .typing-indicator span {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--text-muted);
+    animation: pulse 1.2s infinite;
+  }
+  .typing-indicator span:nth-child(2) { animation-delay: .2s; }
+  .typing-indicator span:nth-child(3) { animation-delay: .4s; }
+  @keyframes pulse { 0%,100% { opacity: .3; } 50% { opacity: 1; } }
+
+  .chat-input {
+    display: flex;
+    gap: 8px;
+    padding: 16px 0 0;
+    border-top: 1px solid var(--border);
+  }
+  .chat-input input {
+    flex: 1;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: 14px;
+    outline: none;
+    transition: border-color .15s;
+  }
+  .chat-input input:focus { border-color: var(--primary); }
+  .chat-input input::placeholder { color: var(--text-muted); }
+  .chat-input button {
+    padding: 12px 20px;
+    border-radius: 8px;
+    border: none;
+    background: var(--primary);
+    color: #fff;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background .15s;
+    white-space: nowrap;
+  }
+  .chat-input button:hover { background: var(--primary-hover); }
+  .chat-input button:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* Citations panel */
+  .citation-panel {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 8px;
+    font-size: 12px;
+  }
+  .citation-panel .cite-item {
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .citation-panel .cite-item:last-child { border-bottom: none; }
+  .citation-panel .cite-score { font-weight: 600; white-space: nowrap; }
+  .citation-panel .cite-text { color: var(--text-muted); flex: 1; }
+
+  /* Tables */
+  .table-wrap { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  th {
+    text-align: left;
+    padding: 10px 12px;
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  tr:hover td { background: var(--surface-2); }
+  .source-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--surface-2);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+  .source-badge.pdf { border-color: #ef4444; color: #ef4444; }
+  .source-badge.html { border-color: #f59e0b; color: #f59e0b; }
+  .source-badge.md { border-color: #22c55e; color: #22c55e; }
+  .source-badge.csv { border-color: #38bdf8; color: #38bdf8; }
+
+  /* Audit Log */
+  .audit-timeline { position: relative; padding-left: 24px; }
+  .audit-timeline::before {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--border);
+  }
+  .audit-item {
+    position: relative;
+    padding: 0 0 20px 16px;
+  }
+  .audit-item::before {
+    content: '';
+    position: absolute;
+    left: -20px;
+    top: 6px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--primary);
+    border: 2px solid var(--bg);
+  }
+  .audit-item .time { font-size: 11px; color: var(--text-muted); }
+  .audit-item .action { font-size: 13px; margin: 2px 0; }
+  .audit-item .detail { font-size: 12px; color: var(--text-muted); }
+
+  /* Login screen */
+  .login-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+  }
+  .login-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px;
+    width: 380px;
+    max-width: 90vw;
+  }
+  .login-box h2 { font-size: 22px; margin-bottom: 4px; }
+  .login-box p { color: var(--text-muted); font-size: 14px; margin-bottom: 24px; }
+  .login-box label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; }
+  .login-box input {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: 14px;
+    outline: none;
+    margin-bottom: 16px;
+  }
+  .login-box input:focus { border-color: var(--primary); }
+  .login-box button {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    background: var(--primary);
+    color: #fff;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .login-box button:hover { background: var(--primary-hover); }
+  .login-box .hint {
+    margin-top: 20px;
+    padding: 12px;
+    background: var(--surface-2);
+    border-radius: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .login-box .hint code {
+    display: block;
+    margin-top: 4px;
+    color: var(--info);
+  }
+
+  /* Buttons */
+  .btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .btn:hover { background: var(--surface); border-color: var(--text-muted); }
+  .btn-primary {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+  }
+  .btn-primary:hover { background: var(--primary-hover); }
+
+  .inline-flex { display: flex; align-items: center; gap: 8px; }
+  .gap-16 { gap: 16px; }
+  .mb-16 { margin-bottom: 16px; }
+  .mb-24 { margin-bottom: 24px; }
+  .mt-16 { margin-top: 16px; }
+  .flex-1 { flex: 1; }
+  .text-muted { color: var(--text-muted); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* Responsiveness for smaller screens */
+  @media (max-width: 768px) {
+    .sidebar { width: 56px; }
+    .sidebar .logo span, .sidebar .status-bar span, .nav-item span { display: none; }
+    .sidebar .logo { justify-content: center; padding: 12px 8px; }
+    .nav-item { justify-content: center; padding: 12px; }
+    .content { padding: 16px; }
+    .topbar { padding: 12px 16px; }
+    .metric-grid { grid-template-columns: repeat(2, 1fr); }
+    .message { max-width: 95%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Login Overlay -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <h2>AI Customer Operations</h2>
+    <p>Demo — Sign in to explore the system</p>
+    <form id="loginForm">
+      <label for="loginEmail">Email</label>
+      <input type="email" id="loginEmail" value="admin@acme.com" placeholder="admin@acme.com">
+      <label for="loginPassword">Password</label>
+      <input type="password" id="loginPassword" value="demo123" placeholder="Enter password">
+      <button type="submit">Sign In</button>
+    </form>
+    <div class="hint">
+      Demo credentials — any email/password works.
+      <code>admin@acme.com — Admin (full access)</code>
+      <code>agent@acme.com  — Agent (query only)</code>
+    </div>
+  </div>
+</div>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="logo">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 0 1 10 10c0 2.5-1 4.8-2.6 6.4"/><path d="M12 2a10 10 0 0 0-7.4 16.4"/><path d="M12 22a10 10 0 0 1-7.4-3.6"/><path d="M12 22a10 10 0 0 0 7.4-3.6"/><circle cx="12" cy="12" r="2"/></svg>
+    <span>AI Ops Demo</span>
+  </div>
+  <nav>
+    <button class="nav-item active" data-page="dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+      <span>Dashboard</span>
+    </button>
+    <button class="nav-item" data-page="query">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span>Query Console</span>
+    </button>
+    <button class="nav-item" data-page="documents">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      <span>Documents</span>
+    </button>
+    <button class="nav-item" data-page="audit">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      <span>Audit Log</span>
+    </button>
+  </nav>
+  <div class="status-bar">
+    <span class="status-dot online" id="statusDot"></span>
+    <span id="statusText">Connected (Demo)</span>
+  </div>
+</aside>
+
+<!-- Main Content -->
+<div class="main">
+  <div class="topbar">
+    <h1 id="pageTitle">Dashboard</h1>
+    <div class="actions">
+      <span class="badge" id="roleBadge">admin</span>
+      <span class="badge" id="tenantBadge">acme-corp</span>
+      <button class="btn" onclick="toggleMode()" id="modeToggle">Switch to Live API</button>
+      <button class="btn" onclick="showLogin()">Sign Out</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- Dashboard -->
+    <div id="page-dashboard">
+      <div class="metric-grid" id="metricGrid"></div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">System Overview</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:14px;line-height:1.8">
+          <div><strong>LLM Provider:</strong> <span id="llmProvider">openai</span></div>
+          <div><strong>Model:</strong> <span id="llmModel">gpt-4o-mini</span></div>
+          <div><strong>Embedding Model:</strong> <span id="embedModel">text-embedding-3-small</span></div>
+          <div><strong>Vector Dimensions:</strong> <span id="vectorDims">1536</span></div>
+          <div><strong>Chunk Size:</strong> <span id="chunkSize">800</span></div>
+          <div><strong>Chunk Overlap:</strong> <span id="chunkOverlap">80</span></div>
+          <div><strong>Cache TTL:</strong> <span id="cacheTtl">3600s</span></div>
+          <div><strong>Hallucination Detector:</strong> <span id="hallDetector">llm_judge</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Query Console -->
+    <div id="page-query" style="display:none">
+      <div class="query-console">
+        <div class="tabs">
+          <button class="tab active" data-context="qa">Q&A</button>
+          <button class="tab" data-context="knowledge-base">Knowledge Base</button>
+        </div>
+        <div class="chat-messages" id="chatMessages"></div>
+        <form class="chat-input" id="chatForm">
+          <input type="text" id="chatInput" placeholder="Ask a question about your knowledge base..." autocomplete="off">
+          <button type="submit" id="chatSendBtn">Send</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Documents -->
+    <div id="page-documents" style="display:none">
+      <div class="inline-flex mb-16 gap-16">
+        <button class="btn btn-primary" onclick="simulateUpload()">+ Simulate Upload</button>
+        <span class="text-muted" id="docCount">4 documents</span>
+      </div>
+      <div class="card">
+        <div class="table-wrap"><table id="docTable"><thead><tr><th>Name</th><th>Type</th><th>Chunks</th><th>Hash</th><th>Uploaded</th></tr></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- Audit Log -->
+    <div id="page-audit" style="display:none">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Activity Timeline</span></div>
+        <div class="audit-timeline" id="auditTimeline"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ============================================================
+// MOCK DATA
+// ============================================================
+const DEMO = {
+  metrics: {
+    total_queries: 12847,
+    deflection_rate: 0.87,
+    hallucination_rate: 0.04,
+    cache_hit_rate: 0.42,
+    avg_latency_ms: 1240,
+    avg_cost_per_query: 0.0082,
+  },
+  config: {
+    LLM_PROVIDER: 'openai',
+    LLM_MODEL: 'gpt-4o-mini',
+    EMBEDDING_MODEL: 'text-embedding-3-small',
+    EMBEDDING_DIMENSIONS: 1536,
+    CHUNK_SIZE: 800,
+    CHUNK_OVERLAP: 80,
+    CACHE_TTL_SECONDS: 3600,
+    HALLUCINATION_DETECTOR_TYPE: 'llm_judge',
+    HALLUCINATION_THRESHOLD_AUTO: 0.9,
+    HALLUCINATION_THRESHOLD_FLAG: 0.6,
+  },
+  conversations: [
+    {
+      id: 'conv-001', customer_ref: 'CUST-1001',
+      messages: [
+        { role: 'user', content: 'What is your return policy for electronics?' },
+        { role: 'assistant', content: 'Our return policy for electronics allows returns within 30 days of purchase. Items must be in their original packaging with all accessories included. Refunds are processed within 5-7 business days after we receive the item. Please note that opened software, consumables, and personalized items are non-returnable.', citations: [{source_id:'doc-001',chunk_content:'Return policy section 3.2: Electronics may be returned within 30 days of purchase...',score:0.94},{source_id:'doc-002',chunk_content:'Refund processing timeline: 5-7 business days after receipt...',score:0.88}], groundedness_score: 0.92, cached: false, action: 'auto' }
+      ]
+    },
+    {
+      id: 'conv-002', customer_ref: 'CUST-1002',
+      messages: [
+        { role: 'user', content: 'How do I reset my password?' },
+        { role: 'assistant', content: 'To reset your password, go to the login page and click "Forgot Password". Enter your registered email address and you\'ll receive a password reset link within 2 minutes. The link expires after 1 hour for security purposes. If you don\'t receive the email, check your spam folder or contact support.', citations: [{source_id:'doc-003',chunk_content:'Password reset procedure: navigate to /forgot-password, enter email...',score:0.96}], groundedness_score: 0.95, cached: true, action: 'auto' }
+      ]
+    },
+    {
+      id: 'conv-003', customer_ref: 'CUST-1003',
+      messages: [
+        { role: 'user', content: 'Can I upgrade my plan mid-cycle?' },
+        { role: 'assistant', content: 'Yes, you can upgrade your plan at any time. The upgrade takes effect immediately and we prorate the difference for the remainder of your billing cycle. For example, if you switch from the Pro ($29/mo) to Business ($99/mo) plan on day 15, you\'ll only pay the prorated difference of $35 for that month.', citations: [{source_id:'doc-004',chunk_content:'Plan upgrade policy: immediate activation, prorated billing...',score:0.91},{source_id:'doc-001',chunk_content:'Billing FAQ: Proration calculation examples...',score:0.85}], groundedness_score: 0.88, cached: false, action: 'auto' }
+      ]
+    },
+    {
+      id: 'conv-004', customer_ref: 'CUST-1004',
+      messages: [
+        { role: 'user', content: 'What shipping options do you offer?' },
+        { role: 'assistant', content: 'We offer three shipping tiers: Standard (5-7 business days, free over $50), Express (2-3 business days, $9.99), and Next-Day (1 business day, $19.99). International shipping is available to 40+ countries starting at $14.99. Tracking is included with all options.', citations: [{source_id:'doc-002',chunk_content:'Shipping options matrix: Standard, Express, Next-Day tiers...',score:0.93}], groundedness_score: 0.97, cached: false, action: 'auto' }
+      ]
+    },
+    {
+      id: 'conv-005', customer_ref: 'CUST-1005',
+      messages: [
+        { role: 'user', content: 'My order arrived damaged. What do I do?' },
+        { role: 'assistant', content: "I'm sorry to hear about the damage! Please contact our support team within 48 hours of delivery with photos of the damaged item and packaging. You can reach us at support@acme.com or through the live chat on our website. We'll arrange a replacement or full refund, including return shipping costs.", citations: [{source_id:'doc-001',chunk_content:'Damaged goods policy: report within 48 hours, photos required...',score:0.89}], groundedness_score: 0.85, cached: false, action: 'flagged' }
+      ]
+    }
+  ],
+  documents: [
+    { id: 'doc-001', source_type: 'pdf', uri: 'customer-support-policy-v3.pdf', content_hash: 'a3f2b8c9d1e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8', chunks: 24, created_at: '2026-06-15T10:30:00Z' },
+    { id: 'doc-002', source_type: 'html', uri: 'faq-section.html', content_hash: 'b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3', chunks: 18, created_at: '2026-06-14T14:20:00Z' },
+    { id: 'doc-003', source_type: 'md', uri: 'onboarding-guide.md', content_hash: 'c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4', chunks: 12, created_at: '2026-06-13T09:15:00Z' },
+    { id: 'doc-004', source_type: 'csv', uri: 'product-catalog-2026.csv', content_hash: 'd6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5', chunks: 36, created_at: '2026-06-10T16:45:00Z' }
+  ],
+  audit: [
+    { id: 'log-001', actor: 'admin@acme.com', action: 'document_upload', payload: '{"document_id":"doc-004","chunks":36}', created_at: '2026-06-10T16:45:00Z' },
+    { id: 'log-002', actor: 'agent@acme.com', action: 'query', payload: '{"query":"What is the refund policy?"}', created_at: '2026-06-10T17:02:00Z' },
+    { id: 'log-003', actor: 'admin@acme.com', action: 'user_login', payload: '{"role":"admin"}', created_at: '2026-06-11T08:30:00Z' },
+    { id: 'log-004', actor: 'system', action: 'cache_clear', payload: '{"tenant_id":"acme-corp"}', created_at: '2026-06-11T09:00:00Z' },
+    { id: 'log-005', actor: 'ops@acme.com', action: 'document_upload', payload: '{"document_id":"doc-003","chunks":12}', created_at: '2026-06-13T09:15:00Z' },
+    { id: 'log-006', actor: 'admin@acme.com', action: 'document_upload', payload: '{"document_id":"doc-002","chunks":18}', created_at: '2026-06-14T14:20:00Z' },
+    { id: 'log-007', actor: 'admin@acme.com', action: 'document_upload', payload: '{"document_id":"doc-001","chunks":24}', created_at: '2026-06-15T10:30:00Z' },
+    { id: 'log-008', actor: 'system', action: 'eval_run', payload: '{"prompt_version":"v2.1","passed":true,"accuracy":0.94}', created_at: '2026-06-15T11:00:00Z' },
+    { id: 'log-009', actor: 'agent@acme.com', action: 'query', payload: '{"query":"How do I cancel my subscription?"}', created_at: '2026-06-15T12:15:00Z' },
+    { id: 'log-010', actor: 'system', action: 'hallucination_alert', payload: '{"message_id":"msg-042","score":0.45,"action":"withheld"}', created_at: '2026-06-15T12:16:00Z' },
+    { id: 'log-011', actor: 'admin@acme.com', action: 'system_config', payload: '{"hallucination_threshold_auto":0.9}', created_at: '2026-06-15T14:00:00Z' },
+    { id: 'log-012', actor: 'customer@example.com', action: 'query', payload: '{"query":"What are your business hours?"}', created_at: '2026-06-15T15:30:00Z' }
+  ]
+};
+
+const DEMO_ANSWERS = [
+  {
+    keywords: ['return', 'refund', 'policy', 'cancel'],
+    answer: 'Our return policy allows returns within 30 days of purchase for most items. Products must be in their original condition with all packaging and accessories. Refunds are processed within 5-7 business days after we receive and inspect the item. For digital products, refunds are issued on a case-by-case basis within 14 days of purchase.',
+    citations: [
+      { source_id: 'doc-001', chunk_content: 'Return policy: 30-day window, original condition required. Refunds processed within 5-7 business days after inspection...', score: 0.94 },
+      { source_id: 'doc-002', chunk_content: 'Digital products: case-by-case refunds within 14 days of purchase...', score: 0.87 }
+    ],
+    groundedness_score: 0.93
+  },
+  {
+    keywords: ['password', 'reset', 'login', 'forgot', 'account'],
+    answer: 'To reset your password, visit the login page and click "Forgot Password". Enter your registered email address and you\'ll receive a reset link within 2 minutes. The link expires after 1 hour. If you don\'t see the email, check your spam folder. For security, you\'ll be asked to verify your identity before the reset is processed.',
+    citations: [
+      { source_id: 'doc-003', chunk_content: 'Password reset flow: /forgot-password → email → verify → reset. Link expires in 1 hour...', score: 0.96 }
+    ],
+    groundedness_score: 0.95
+  },
+  {
+    keywords: ['shipping', 'delivery', 'ship', 'overnight', 'express'],
+    answer: 'We offer three shipping options: Standard (5-7 business days, free over $50), Express (2-3 business days, $9.99), and Next-Day (order by 2 PM EST, $19.99). International shipping reaches 40+ countries starting at $14.99. All packages include real-time tracking via email and SMS notifications.',
+    citations: [
+      { source_id: 'doc-002', chunk_content: 'Shipping tiers matrix with pricing and delivery windows...', score: 0.93 },
+      { source_id: 'doc-004', chunk_content: 'International shipping: 40+ countries, rates start at $14.99...', score: 0.88 }
+    ],
+    groundedness_score: 0.97
+  },
+  {
+    keywords: ['upgrade', 'plan', 'billing', 'subscription', 'pro', 'business', 'pricing'],
+    answer: 'Yes, you can upgrade your plan at any time. The upgrade takes effect immediately and we prorate the difference for the remainder of your billing cycle. For example, upgrading from Pro ($29/mo) to Business ($99/mo) on day 15 means you pay only the prorated difference. Downgrades take effect at the end of your current billing cycle.',
+    citations: [
+      { source_id: 'doc-004', chunk_content: 'Plan upgrade policy: immediate activation with prorated billing. Downgrades effective at end of cycle...', score: 0.91 },
+      { source_id: 'doc-001', chunk_content: 'Billing FAQ: Proration calculation examples for mid-cycle changes...', score: 0.85 }
+    ],
+    groundedness_score: 0.88
+  },
+  {
+    keywords: ['damage', 'damaged', 'broken', 'defective', 'wrong'],
+    answer: 'I apologize for the trouble! Please contact support within 48 hours of delivery with photos of the damaged item and packaging. Email support@acme.com or use live chat on our website. We\'ll arrange a free replacement or full refund, including return shipping. Claims after 48 hours are reviewed on a case-by-case basis.',
+    citations: [
+      { source_id: 'doc-001', chunk_content: 'Damaged goods: report within 48 hours with photos. Free replacement or refund including return shipping...', score: 0.89 }
+    ],
+    groundedness_score: 0.85
+  },
+  {
+    keywords: ['hours', 'business', 'open', 'closed', 'weekend', 'support'],
+    answer: 'Our customer support team is available Monday through Friday, 8:00 AM to 8:00 PM EST, and Saturday from 9:00 AM to 5:00 PM EST. We\'re closed on Sundays and major holidays. For urgent issues outside these hours, you can submit a ticket through our portal and we\'ll respond within 4 hours.',
+    citations: [
+      { source_id: 'doc-002', chunk_content: 'Support hours: Mon-Fri 8AM-8PM EST, Sat 9AM-5PM EST. Closed Sunday and holidays...', score: 0.92 }
+    ],
+    groundedness_score: 0.96
+  }
+];
+
+// ============================================================
+// STATE
+// ============================================================
+let state = {
+  mode: 'demo',
+  user: null,
+  currentPage: 'dashboard',
+  chatHistory: [],
+  convCounter: 5
+};
+
+// ============================================================
+// PAGE NAVIGATION
+// ============================================================
+document.querySelectorAll('.nav-item').forEach(el => {
+  el.addEventListener('click', () => {
+    const page = el.dataset.page;
+    navigateTo(page);
+  });
+});
+
+document.querySelectorAll('.tab[data-context]').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+  });
+});
+
+function navigateTo(page) {
+  state.currentPage = page;
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.querySelector(`.nav-item[data-page="${page}"]`)?.classList.add('active');
+  document.querySelectorAll('.content > [id^="page-"]').forEach(el => el.style.display = 'none');
+  const target = document.getElementById(`page-${page}`);
+  if (target) target.style.display = 'block';
+  const titles = { dashboard: 'Dashboard', query: 'Query Console', documents: 'Documents', audit: 'Audit Log' };
+  document.getElementById('pageTitle').textContent = titles[page] || page;
+  if (page === 'dashboard') renderDashboard();
+  if (page === 'documents') renderDocuments();
+  if (page === 'audit') renderAudit();
+}
+
+// ============================================================
+// LOGIN
+// ============================================================
+function showLogin() {
+  document.getElementById('loginOverlay').style.display = 'flex';
+  state.user = null;
+}
+document.getElementById('loginForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value || 'admin@acme.com';
+  const role = email.includes('admin') ? 'admin' : email.includes('agent') ? 'agent' : 'customer';
+  state.user = { email, role, tenant_id: 'acme-corp' };
+  document.getElementById('loginOverlay').style.display = 'none';
+  document.getElementById('roleBadge').textContent = role;
+  document.getElementById('tenantBadge').textContent = 'acme-corp';
+  navigateTo('dashboard');
+});
+
+// ============================================================
+// MODE TOGGLE
+// ============================================================
+function toggleMode() {
+  state.mode = state.mode === 'demo' ? 'live' : 'demo';
+  const btn = document.getElementById('modeToggle');
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  btn.textContent = state.mode === 'demo' ? 'Switch to Live API' : 'Switch to Demo';
+  dot.className = 'status-dot ' + (state.mode === 'demo' ? 'online' : 'offline');
+  txt.textContent = state.mode === 'demo' ? 'Connected (Demo)' : 'Live API Mode';
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function renderDashboard() {
+  const m = DEMO.metrics;
+  const grid = document.getElementById('metricGrid');
+  const cards = [
+    { label: 'Total Queries', value: m.total_queries.toLocaleString(), cls: '', sub: 'Lifetime' },
+    { label: 'Deflection Rate', value: (m.deflection_rate * 100).toFixed(1) + '%', cls: m.deflection_rate >= 0.8 ? 'good' : 'warn', sub: 'Auto-resolved' },
+    { label: 'Hallucination Rate', value: (m.hallucination_rate * 100).toFixed(1) + '%', cls: m.hallucination_rate < 0.05 ? 'good' : m.hallucination_rate < 0.1 ? 'warn' : 'bad', sub: 'LLM-as-judge' },
+    { label: 'Cache Hit Rate', value: (m.cache_hit_rate * 100).toFixed(0) + '%', cls: 'good', sub: 'Semantic cache' },
+    { label: 'Avg Latency', value: m.avg_latency_ms.toFixed(0) + 'ms', cls: m.avg_latency_ms < 1500 ? 'good' : 'warn', sub: 'End-to-end' },
+    { label: 'Avg Cost / Query', value: '$' + m.avg_cost_per_query.toFixed(4), cls: '', sub: 'LLM + Embeddings' }
+  ];
+  grid.innerHTML = cards.map(c => `
+    <div class="metric-card">
+      <div class="label">${c.label}</div>
+      <div class="value ${c.cls}">${c.value}</div>
+      <div class="sub">${c.sub}</div>
+    </div>
+  `).join('');
+
+  const cfg = DEMO.config;
+  document.getElementById('llmProvider').textContent = cfg.LLM_PROVIDER;
+  document.getElementById('llmModel').textContent = cfg.LLM_MODEL;
+  document.getElementById('embedModel').textContent = cfg.EMBEDDING_MODEL;
+  document.getElementById('vectorDims').textContent = cfg.EMBEDDING_DIMENSIONS;
+  document.getElementById('chunkSize').textContent = cfg.CHUNK_SIZE;
+  document.getElementById('chunkOverlap').textContent = cfg.CHUNK_OVERLAP;
+  document.getElementById('cacheTtl').textContent = cfg.CACHE_TTL_SECONDS + 's';
+  document.getElementById('hallDetector').textContent = cfg.HALLUCINATION_DETECTOR_TYPE;
+}
+
+// ============================================================
+// QUERY CONSOLE
+// ============================================================
+function findBestAnswer(query) {
+  const q = query.toLowerCase();
+  for (const item of DEMO_ANSWERS) {
+    if (item.keywords.some(k => q.includes(k))) return item;
+  }
+  return DEMO_ANSWERS[0];
+}
+
+function formatCitations(citations) {
+  if (!citations || citations.length === 0) return '';
+  return `<div class="citation-panel"><strong style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px">RETRIEVED CHUNKS (${citations.length})</strong>
+    ${citations.map(c => `<div class="cite-item"><span class="cite-text">${c.chunk_content}</span><span class="cite-score" style="color:${c.score >= 0.9 ? 'var(--success)' : c.score >= 0.7 ? 'var(--warning)' : 'var(--danger)'}">${(c.score * 100).toFixed(0)}%</span></div>`).join('')}
+  </div>`;
+}
+
+function getActionTag(action, score) {
+  if (score !== null && score < 0.6) return '<span class="tag withheld">WITHHELD</span>';
+  if (action === 'auto') return '<span class="tag auto">AUTO-SEND</span>';
+  if (action === 'flagged') return '<span class="tag flagged">FLAGGED</span>';
+  return '';
+}
+
+function getScoreClass(score) {
+  if (score === null || score === undefined) return '';
+  if (score >= 0.9) return 'hall-low';
+  if (score >= 0.6) return 'hall-mid';
+  return 'hall-high';
+}
+
+function simulateStreaming(text, citations, groundedness, action, cached, messageEl) {
+  return new Promise(resolve => {
+    const contentDiv = document.createElement('div');
+    messageEl.appendChild(contentDiv);
+    let idx = 0;
+    const words = text.split(' ');
+    const interval = setInterval(() => {
+      if (idx < words.length) {
+        contentDiv.textContent += (idx > 0 ? ' ' : '') + words[idx];
+        idx++;
+        messageEl.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      } else {
+        clearInterval(interval);
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        meta.innerHTML = `
+          <span>Groundedness: <span class="${getScoreClass(groundedness)}">${groundedness !== null && groundedness !== undefined ? (groundedness * 100).toFixed(0) + '%' : 'N/A'}</span></span>
+          ${getActionTag(action, groundedness)}
+          ${cached ? '<span class="tag cached">CACHED</span>' : ''}
+          <span>Citations: ${citations.length}</span>
+        `;
+        messageEl.appendChild(meta);
+        if (citations.length > 0) {
+          messageEl.insertAdjacentHTML('beforeend', formatCitations(citations));
+        }
+        document.getElementById('chatSendBtn').disabled = false;
+        document.getElementById('chatInput').disabled = false;
+        document.getElementById('chatInput').focus();
+        resolve();
+      }
+    }, 25);
+  });
+}
+
+async function handleChat(e) {
+  e.preventDefault();
+  const input = document.getElementById('chatInput');
+  const query = input.value.trim();
+  if (!query) return;
+
+  const sendBtn = document.getElementById('chatSendBtn');
+  sendBtn.disabled = true;
+  input.disabled = true;
+
+  // Add user message
+  const chat = document.getElementById('chatMessages');
+  const userMsg = document.createElement('div');
+  userMsg.className = 'message user';
+  userMsg.textContent = query;
+  chat.appendChild(userMsg);
+  input.value = '';
+  userMsg.scrollIntoView({ behavior: 'smooth', block: 'end' });
+
+  // Typing indicator
+  const typing = document.createElement('div');
+  typing.className = 'typing-indicator';
+  typing.innerHTML = '<span></span><span></span><span></span>';
+  chat.appendChild(typing);
+  typing.scrollIntoView({ behavior: 'smooth', block: 'end' });
+
+  // Simulate thinking time
+  await new Promise(r => setTimeout(r, 600 + Math.random() * 800));
+
+  // Remove typing
+  typing.remove();
+
+  // Build response
+  const match = findBestAnswer(query);
+  const isCached = Math.random() < 0.3;
+  const baseScore = match.groundedness_score;
+  const finalScore = isCached ? baseScore : Math.max(0, Math.min(1, baseScore + (Math.random() - 0.5) * 0.1));
+  const action = finalScore >= 0.9 ? 'auto' : finalScore >= 0.6 ? 'flagged' : 'withheld';
+  const finalAction = finalScore < 0.6 ? 'withheld' : action;
+
+  const assistantMsg = document.createElement('div');
+  assistantMsg.className = 'message assistant';
+
+  if (finalScore < 0.6) {
+    // Simulate withholding
+    assistantMsg.innerHTML = `<em style="color:var(--danger)">⚠ This response was withheld — low groundedness score (${(finalScore * 100).toFixed(0)}%). The answer did not meet the minimum confidence threshold.</em>`;
+    chat.appendChild(assistantMsg);
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    meta.innerHTML = `<span>Groundedness: <span class="hall-high">${(finalScore * 100).toFixed(0)}%</span></span><span class="tag withheld">WITHHELD</span>`;
+    assistantMsg.appendChild(meta);
+    sendBtn.disabled = false;
+    input.disabled = false;
+    input.focus();
+    return;
+  }
+
+  chat.appendChild(assistantMsg);
+  await simulateStreaming(match.answer, match.citations, finalScore, finalAction, isCached, assistantMsg);
+}
+
+document.getElementById('chatForm').addEventListener('submit', handleChat);
+
+// Add a welcome message on first load
+document.addEventListener('DOMContentLoaded', () => {
+  const chat = document.getElementById('chatMessages');
+  const welcome = document.createElement('div');
+  welcome.className = 'message assistant';
+  welcome.innerHTML = `
+    <strong>Welcome to the Demo!</strong><br><br>
+    This is the RAG-powered Q&A console. Ask any question about customer operations and see how the system:<br><br>
+    • Retrieves relevant knowledge base chunks via hybrid search (vector + BM25)<br>
+    • Generates a grounded response via LLM<br>
+    • Scores it for hallucination risk (LLM-as-judge)<br>
+    • Routes it: Auto-Send ✅ / Flagged ⚠️ / Withheld ❌<br><br>
+    <em style="color:var(--text-muted)">Try: "What is your return policy?" or "How do I reset my password?"</em>
+  `;
+  chat.appendChild(welcome);
+});
+
+// ============================================================
+// DOCUMENTS
+// ============================================================
+function renderDocuments() {
+  const tbody = document.querySelector('#docTable tbody');
+  const typeClass = { pdf: 'pdf', html: 'html', md: 'md', csv: 'csv' };
+  const typeLabel = { pdf: 'PDF', html: 'HTML', md: 'Markdown', csv: 'CSV' };
+  document.getElementById('docCount').textContent = DEMO.documents.length + ' documents';
+  tbody.innerHTML = DEMO.documents.map(d => `
+    <tr>
+      <td>${d.uri}</td>
+      <td><span class="source-badge ${typeClass[d.source_type] || ''}">${typeLabel[d.source_type] || d.source_type}</span></td>
+      <td>${d.chunks}</td>
+      <td style="font-family:monospace;font-size:11px;color:var(--text-muted)">${d.content_hash.substring(0, 16)}...</td>
+      <td>${new Date(d.created_at).toLocaleDateString()}</td>
+    </tr>
+  `).join('');
+}
+
+function simulateUpload() {
+  const types = ['pdf', 'html', 'md', 'csv'];
+  const names = ['knowledge-base-2026', 'api-documentation', 'troubleshooting-guide', 'terms-of-service'];
+  const t = types[Math.floor(Math.random() * types.length)];
+  const name = names[Math.floor(Math.random() * names.length)] + '.' + (t === 'md' ? 'md' : t);
+  const chunks = Math.floor(Math.random() * 30) + 5;
+  const hash = Array.from({length:40}, () => '0123456789abcdef'[Math.floor(Math.random()*16)]).join('');
+  DEMO.documents.push({
+    id: 'doc-' + String(DEMO.documents.length + 1).padStart(3, '0'),
+    source_type: t,
+    uri: name,
+    content_hash: hash,
+    chunks,
+    created_at: new Date().toISOString()
+  });
+  DEMO.audit.unshift({
+    id: 'log-' + String(DEMO.audit.length + 1).padStart(3, '0'),
+    actor: state.user?.email || 'admin@acme.com',
+    action: 'document_upload',
+    payload: `{"document_id":"doc-${DEMO.documents.length}","chunks":${chunks}}`,
+    created_at: new Date().toISOString()
+  });
+  renderDocuments();
+}
+
+// ============================================================
+// AUDIT LOG
+// ============================================================
+function renderAudit() {
+  const tl = document.getElementById('auditTimeline');
+  tl.innerHTML = DEMO.audit.map(a => {
+    let detail = a.payload || '';
+    try { const p = JSON.parse(a.payload); detail = Object.entries(p).map(([k,v]) => `${k}: ${v}`).join(', '); } catch {}
+    return `<div class="audit-item">
+      <div class="time">${new Date(a.created_at).toLocaleString()}</div>
+      <div class="action"><strong>${a.action.replace(/_/g, ' ')}</strong> by ${a.actor}</div>
+      <div class="detail">${detail}</div>
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
+// INIT
+// ============================================================
+</script>
+</body>
+</html>
