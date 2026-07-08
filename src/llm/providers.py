@@ -16,7 +16,25 @@ class LLMClient(ABC):
         ...
 
 
+class OpenAIProvider(LLMClient):
+    def __init__(self, api_key: str = "", model: str = "gpt-4o-mini"):
+        self.api_key = api_key or settings.LLM_API_KEY
+        self.model = model or settings.LLM_MODEL
 
+    async def stream(self, system_prompt: str, user_query: str) -> AsyncGenerator[str, None]:
+        from openai import AsyncOpenAI
+        client = AsyncOpenAI(api_key=self.api_key)
+        response = await client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_query},
+            ],
+            stream=True,
+        )
+        async for chunk in response:
+            if chunk.choices and chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content
 
     async def stream_complete(self, prompt: str) -> AsyncGenerator[str, None]:
         from openai import AsyncOpenAI
