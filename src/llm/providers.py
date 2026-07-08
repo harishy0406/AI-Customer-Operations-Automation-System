@@ -111,10 +111,4 @@ class GroqProvider(LLMClient):
                 yield chunk.choices[0].delta.content
 
 
-def get_llm_client() -> LLMClient:
-    provider = settings.LLM_PROVIDER.lower()
-    if provider == "anthropic":
-        return AnthropicProvider()
-    elif provider == "groq":
-        return GroqProvider()
-    return OpenAIProvider()
+
