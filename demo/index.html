@@ -989,21 +989,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ============================================================
 // DOCUMENTS
 // ============================================================
-function renderDocuments() {
-  const tbody = document.querySelector('#docTable tbody');
-  const typeClass = { pdf: 'pdf', html: 'html', md: 'md', csv: 'csv' };
-  const typeLabel = { pdf: 'PDF', html: 'HTML', md: 'Markdown', csv: 'CSV' };
-  document.getElementById('docCount').textContent = DEMO.documents.length + ' documents';
-  tbody.innerHTML = DEMO.documents.map(d => `
-    <tr>
-      <td>${d.uri}</td>
-      <td><span class="source-badge ${typeClass[d.source_type] || ''}">${typeLabel[d.source_type] || d.source_type}</span></td>
-      <td>${d.chunks}</td>
-      <td style="font-family:monospace;font-size:11px;color:var(--text-muted)">${d.content_hash.substring(0, 16)}...</td>
-      <td>${new Date(d.created_at).toLocaleDateString()}</td>
-    </tr>
-  `).join('');
-}
+
 
 function simulateUpload() {
   const types = ['pdf', 'html', 'md', 'csv'];
