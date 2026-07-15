@@ -969,22 +969,7 @@ async function handleChat(e) {
 
 document.getElementById('chatForm').addEventListener('submit', handleChat);
 
-// Add a welcome message on first load
-document.addEventListener('DOMContentLoaded', () => {
-  const chat = document.getElementById('chatMessages');
-  const welcome = document.createElement('div');
-  welcome.className = 'message assistant';
-  welcome.innerHTML = `
-    <strong>Welcome to the Demo!</strong><br><br>
-    This is the RAG-powered Q&A console. Ask any question about customer operations and see how the system:<br><br>
-    • Retrieves relevant knowledge base chunks via hybrid search (vector + BM25)<br>
-    • Generates a grounded response via LLM<br>
-    • Scores it for hallucination risk (LLM-as-judge)<br>
-    • Routes it: Auto-Send ✅ / Flagged ⚠️ / Withheld ❌<br><br>
-    <em style="color:var(--text-muted)">Try: "What is your return policy?" or "How do I reset my password?"</em>
-  `;
-  chat.appendChild(welcome);
-});
+
 
 // ============================================================
 // DOCUMENTS
