@@ -939,12 +939,7 @@ async function handleChat(e) {
   typing.remove();
 
   // Build response
-  const match = findBestAnswer(query);
-  const isCached = Math.random() < 0.3;
-  const baseScore = match.groundedness_score;
-  const finalScore = isCached ? baseScore : Math.max(0, Math.min(1, baseScore + (Math.random() - 0.5) * 0.1));
-  const action = finalScore >= 0.9 ? 'auto' : finalScore >= 0.6 ? 'flagged' : 'withheld';
-  const finalAction = finalScore < 0.6 ? 'withheld' : action;
+
 
   const assistantMsg = document.createElement('div');
   assistantMsg.className = 'message assistant';
